@@ -6,4 +6,8 @@ class User(AbstractUser):
     bio = models.TextField(
         'Биография',
         blank=True,
-    ) 
+    )
+    role = models.TextField(
+        'Роль пользователя',
+        blank=True,
+    )
