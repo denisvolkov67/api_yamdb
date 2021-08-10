@@ -1,4 +1,4 @@
-from .models import Categories, Genres, Title
+from reviews.models import Categories, Genres, Title
 from rest_framework import serializers
 
 
@@ -17,6 +17,10 @@ class GenresSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
+    genre = GenresSerializer(read_only=True, many=True)
+    category = CategoriesSerializer(read_only=True)
+    rating = serializers.IntegerField(read_only=True, required=False)
+
     class Meta:
         model = Title
         fields = '__all__'

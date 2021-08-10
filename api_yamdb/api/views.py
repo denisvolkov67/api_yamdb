@@ -1,4 +1,4 @@
-from .models import Categories, Genres, Title
+from reviews.models import Categories, Genres, Title
 from rest_framework import filters, viewsets
 
 from .serializers import (CategoriesSerializer,
