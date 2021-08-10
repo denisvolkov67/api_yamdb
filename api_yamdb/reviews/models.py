@@ -71,3 +71,7 @@ class User(AbstractUser):
         max_length=16, 
         choices=UserRole.CHOICES,
     )
+    confirmation_code= models.TextField(
+        'Код подтверждения',
+        blank=True,
+    )
