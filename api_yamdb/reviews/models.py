@@ -1,7 +1,9 @@
 from datetime import datetime
-
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
+
+
 
 
 class Categories(models.Model):
@@ -46,4 +48,26 @@ class Title(models.Model):
         null=True,
         on_delete=models.SET_NULL,
         related_name='titles'
+    )
+
+
+class UserRole():
+    ADMIN = 'admin'
+    MODERATOR = 'moderator'
+    USER = 'user'
+    CHOICES = [
+        (ADMIN, 'admin'),
+        (MODERATOR, 'moderator'),
+        (USER, 'user'),
+    ]
+
+class User(AbstractUser):
+    bio = models.TextField(
+        'Биография',
+        blank=True,
+    )
+    role = models.CharField(
+        verbose_name='Роль пользователя',
+        max_length=16, 
+        choices=UserRole.CHOICES,
     )

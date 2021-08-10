@@ -1,5 +1,5 @@
 import csv
-from users.models import User
+from reviews.models import User
 
 CSV_USERS = 'static/data/users.csv'
 

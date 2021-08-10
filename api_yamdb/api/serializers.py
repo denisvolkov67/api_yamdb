@@ -1,5 +1,8 @@
-from reviews.models import Categories, Genres, Title
+from reviews.models import Categories, Genres, Title, User, UserRole
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
@@ -25,3 +28,14 @@ class TitleSerializer(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
         read_only_fields = ('genres', 'category')
+
+
+class UserSerializer(serializers.ModelSerializer):
+    role = serializers.ChoiceField(required=False, 
+        choices=UserRole.CHOICES, 
+        default=UserRole.USER)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'bio', 'role',)
+
