@@ -33,29 +33,34 @@ class TitleSerializer(serializers.ModelSerializer):
         read_only_fields = ('genres', 'category')
 
 
-class UserSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField('^[\w.@+-]+\z', max_length=150)
+class AbstractUserSerializer(serializers.ModelSerializer):
+    username = serializers.RegexField('^[\w.@+-]', max_length=150)
     email = serializers.EmailField(
+        max_length=254,
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
     role = serializers.ChoiceField(required=False, 
         choices=UserRole.CHOICES, 
         default=UserRole.USER)
 
+
+class UserSerializer(AbstractUserSerializer):
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name', 'bio', 'role',)
 
 
-class SignupSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField('^[\w.@+-]', max_length=150)
-    email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=User.objects.all())]
-    )
-
+class UserMeSerializer(AbstractUserSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email',)
+        fields = ('username', 'email', 'first_name', 'last_name', 'bio',)
+
+
+class SignupSerializer(AbstractUserSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'role',)
+        read_only_fields = ('role',)
     
     def validate(self, attrs): 
         if(attrs['username'] == 'me'): 
@@ -65,8 +70,8 @@ class SignupSerializer(serializers.ModelSerializer):
             ) 
         return attrs 
 
-class TokenSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField('^[\w.@+-]+\z', max_length=150)
+
+class TokenSerializer(AbstractUserSerializer):
     confirmation_code = serializers.CharField()
 
     class Meta:

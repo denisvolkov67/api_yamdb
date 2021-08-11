@@ -1,20 +1,26 @@
-
-import math
-import random
+from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView, get_object_or_404
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from reviews.models import Categories, Genres, Title, User
 from rest_framework import filters, mixins, viewsets, status
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from django.contrib.auth.tokens import default_token_generator  
 
+from .permissions import IsAdmin, IsMeUser
 from .serializers import (CategoriesSerializer,
                           GenresSerializer, SignupSerializer,
-                          TitleSerializer, TokenSerializer, UserSerializer)
+                          TitleSerializer, TokenSerializer, UserMeSerializer, UserSerializer)
 from .utils import Util
 
 
 class CreateViewSet(mixins.CreateModelMixin,
+                    viewsets.GenericViewSet):
+    pass
+
+
+class RetrieveUpdateViewSet(mixins.RetrieveModelMixin,
+                    mixins.UpdateModelMixin,
                     viewsets.GenericViewSet):
     pass
 
@@ -43,7 +49,29 @@ class TitleViewSet(viewsets.ReadOnlyModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (IsAuthenticated, IsAdmin) 
     lookup_field = 'username'
+
+    # @action(methods=['get', 'patch'], detail=True, url_path='me')
+    # def me(self, request):
+    #     serializer = UserMeSerializer
+    #     if request.method == 'PATCH':
+    #         return Response(f'Получены данные: {request.PATCH}')
+    #     user = User.objects.filter(username=request.user.username)
+    #     serializer = self.get_serializer(user)
+    #     return Response(serializer.data) 
+
+
+class UserMeViewSet(RetrieveUpdateViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserMeSerializer
+    permission_classes = (IsAuthenticated, IsMeUser)
+
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        return super().perform_update(serializer)
 
 
 class SignupViewSet(CreateViewSet):

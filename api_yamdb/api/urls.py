@@ -11,6 +11,7 @@ v1_router.register(r'categories', CategoriesViewSet)
 v1_router.register(r'genres', GenresViewSet)
 v1_router.register(r'titles', TitleViewSet)
 v1_router.register(r'users', UserViewSet, 'users')
+# v1_router.register(r'users/me', UserMeViewSet, 'users')
 v1_router.register(r'auth/signup', SignupViewSet, 'signup')
 v1_router.register(r'auth/token', TokenViewSet, 'token')
 
