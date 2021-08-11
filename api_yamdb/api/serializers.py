@@ -1,4 +1,6 @@
 from enum import unique
+
+from rest_framework.validators import UniqueValidator
 from reviews.models import Categories, Genres, Title, User, UserRole
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -32,6 +34,10 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    username = serializers.RegexField('^[\w.@+-]+\z', max_length=150)
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
     role = serializers.ChoiceField(required=False, 
         choices=UserRole.CHOICES, 
         default=UserRole.USER)
@@ -42,16 +48,25 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class SignupSerializer(serializers.ModelSerializer):
-    username = serializers.CharField()
-    email = serializers.CharField()
+    username = serializers.RegexField('^[\w.@+-]', max_length=150)
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
 
     class Meta:
         model = User
         fields = ('username', 'email',)
+    
+    def validate(self, attrs): 
+        if(attrs['username'] == 'me'): 
 
+            raise serializers.ValidationError( 
+                'Нельзя использовать "me" в качестве username!' 
+            ) 
+        return attrs 
 
 class TokenSerializer(serializers.ModelSerializer):
-    username = serializers.CharField()
+    username = serializers.RegexField('^[\w.@+-]+\z', max_length=150)
     confirmation_code = serializers.CharField()
 
     class Meta:
