@@ -86,16 +86,14 @@ class UserMeViewSet(RetrieveUpdateViewSet):
         return Response(serializer.data) 
 
 
-
-
 class SignupViewSet(CreateViewSet):
     queryset = User.objects.all()
     serializer_class = SignupSerializer
         
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
-        username = request.data['username']
-        email = request.data['email']
+        username = request.data.get('username')
+        email = request.data.get('email')
         user = get_object_or_404(User, username = username)
         confirmation_code = default_token_generator.make_token(user)
         data = {
@@ -116,8 +114,9 @@ class TokenViewSet(CreateViewSet):
     serializer_class = TokenSerializer
 
     def create(self, request):
-        username = request.data['username']
-        confirmation_code = request.data['confirmation_code']
+        print(request.data)
+        username = request.data.get('username')
+        confirmation_code = request.data.get('confirmation_code')
         user = get_object_or_404(User, username=username)
 
         if default_token_generator.check_token(user, confirmation_code):
