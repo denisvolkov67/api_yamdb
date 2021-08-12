@@ -1,9 +1,8 @@
 from datetime import datetime
+
 from django.contrib.auth.models import AbstractUser
-from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-
 
 Rating_CHOICES = (
     (1, "Poor"),
@@ -12,6 +11,7 @@ Rating_CHOICES = (
     (4, "Very Good"),
     (5, "Excellent"),
 )
+
 
 class UserRole():
     ADMIN = 'admin'
@@ -31,7 +31,7 @@ class User(AbstractUser):
     )
     role = models.CharField(
         verbose_name='Роль пользователя',
-        max_length=16, 
+        max_length=16,
         choices=UserRole.CHOICES,
     )
 
@@ -59,7 +59,7 @@ class Title(models.Model):
         validators=[
             MaxValueValidator(
                 datetime.now().year,
-                message="Ты умеешь  перемещаться в будущее? Введи верную дату;)",
+                message="Ты умеешь перемещаться в будущее? Введи верную дату)",
             ),
             MinValueValidator(
                 1,
@@ -108,5 +108,3 @@ class Comments(models.Model):
     created = models.DateTimeField(
         "Дата добавления", auto_now_add=True, db_index=True
     )
-
-

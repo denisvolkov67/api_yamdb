@@ -1,27 +1,21 @@
-from rest_framework.decorators import action
+from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, permissions, viewsets, mixins, status
-from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, mixins, permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
-from django.contrib.auth.tokens import default_token_generator
+from reviews.models import (Categories, Comments, Genres, Reviews, Title, User,
+                            UserRole)
 
-from reviews.models import Categories, Comments, Genres, Reviews, Title, User, UserRole
 from .filters import TitleFilter
-from .permissions import IsOwnerOrReadOnly, IsAdmin
-from .serializers import (
-    CategoriesSerializer,
-    CommentsSerializer,
-    GenresSerializer,
-    ReviewsSerializer,
-    TitleSerializer,
-    TitleWriteSerializer,
-    SignupSerializer,
-    TokenSerializer,
-    UserMeSerializer,
-    UserSerializer
-)
+from .permissions import IsAdmin, IsOwnerOrReadOnly
+from .serializers import (CategoriesSerializer, CommentsSerializer,
+                          GenresSerializer, ReviewsSerializer,
+                          SignupSerializer, TitleSerializer,
+                          TitleWriteSerializer, TokenSerializer,
+                          UserMeSerializer, UserSerializer)
 from .utils import Util
 
 
@@ -31,15 +25,15 @@ class CreateViewSet(mixins.CreateModelMixin,
 
 
 class RetrieveUpdateViewSet(mixins.RetrieveModelMixin,
-                    mixins.UpdateModelMixin,
-                    viewsets.GenericViewSet):
+                            mixins.UpdateModelMixin,
+                            viewsets.GenericViewSet):
     pass
 
 
 class BaseModelViewSet(mixins.ListModelMixin,
-                    mixins.CreateModelMixin,
-                    mixins.DestroyModelMixin,
-                    viewsets.GenericViewSet):
+                       mixins.CreateModelMixin,
+                       mixins.DestroyModelMixin,
+                       viewsets.GenericViewSet):
     pass
 
 
@@ -69,6 +63,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         if self.request.method in permissions.SAFE_METHODS:
             return TitleSerializer
         return TitleWriteSerializer
+
 
 class ReviewsViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewsSerializer
@@ -117,12 +112,13 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, IsAdmin,)
     lookup_field = 'username'
 
-    @action(methods=['get', 'patch', 'post'], permission_classes=(IsAuthenticated,), detail=False, url_path='me')
+    @action(methods=['get', 'patch', 'post'], detail=False,
+            permission_classes=(IsAuthenticated,), url_path='me')
     def me(self, request):
         if request.method == 'GET':
             user = get_object_or_404(User, username=request.user.username)
             serializer = self.get_serializer(user)
-            return Response(serializer.data) 
+            return Response(serializer.data)
 
         if request.method == 'PATCH':
             data = request.data
@@ -131,12 +127,15 @@ class UserViewSet(viewsets.ModelViewSet):
                 data._mutable = True
                 data.update({'role': 'user'})
                 data._mutable = _mutable
-            serializer = self.get_serializer(request.user, data=data, partial=True)
+            serializer = self.get_serializer(request.user,
+                                             data=data,
+                                             partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.update(request.user, data)
             headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_200_OK, headers=headers)
-
+            return Response(serializer.data,
+                            status=status.HTTP_200_OK,
+                            headers=headers)
 
 
 class UserMeViewSet(RetrieveUpdateViewSet):
@@ -148,18 +147,18 @@ class UserMeViewSet(RetrieveUpdateViewSet):
         print(request.user.username)
         user = get_object_or_404(User, username=request.user.username)
         serializer = self.get_serializer(user)
-        return Response(serializer.data) 
+        return Response(serializer.data)
 
 
 class SignupViewSet(CreateViewSet):
     queryset = User.objects.all()
     serializer_class = SignupSerializer
-        
+
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
         username = request.data.get('username')
         email = request.data.get('email')
-        user = get_object_or_404(User, username = username)
+        user = get_object_or_404(User, username=username)
         confirmation_code = default_token_generator.make_token(user)
         data = {
             'email_body': confirmation_code,
@@ -167,11 +166,11 @@ class SignupViewSet(CreateViewSet):
             'email_subject': 'confirmation_code'
         }
         Util.send_email(data)
-        content  = {
+        content = {
             'username': username,
             'email': email
         }
-        return Response(content, status=status.HTTP_200_OK)    
+        return Response(content, status=status.HTTP_200_OK)
 
 
 class TokenViewSet(CreateViewSet):

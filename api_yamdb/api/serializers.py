@@ -1,9 +1,7 @@
-from enum import unique
-
-from rest_framework.validators import UniqueValidator
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-from reviews.models import Categories, Comments, Genres, Reviews, Title, User, UserRole
+from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
+from reviews.models import (Categories, Comments, Genres, Reviews, Title, User,
+                            UserRole)
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
@@ -29,8 +27,8 @@ class TitleSerializer(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
         read_only_fields = ('genre', 'category', 'rating')
-        
-        
+
+
 class TitleWriteSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
         queryset=Genres.objects.all(), slug_field='slug', many=True
@@ -42,8 +40,8 @@ class TitleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         fields = '__all__'
         model = Title
-        
-        
+
+
 class ReviewsSerializer(serializers.Serializer):
     author = serializers.SlugRelatedField(
         read_only=True,
@@ -85,7 +83,8 @@ class CommentsSerializer(serializers.ModelSerializer):
 
 
 class AbstractUserSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField('^[\w.@+-]', 
+    username = serializers.RegexField(
+        '^[\w.@+-]',
         max_length=150,
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
@@ -93,15 +92,18 @@ class AbstractUserSerializer(serializers.ModelSerializer):
         max_length=254,
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
-    role = serializers.ChoiceField(required=False, 
-        choices=UserRole.CHOICES, 
-        default=UserRole.USER)
+    role = serializers.ChoiceField(
+        required=False,
+        choices=UserRole.CHOICES,
+        default=UserRole.USER
+    )
 
 
 class UserSerializer(AbstractUserSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'bio', 'role',)
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'bio', 'role',)
 
 
 class UserMeSerializer(AbstractUserSerializer):
@@ -115,14 +117,14 @@ class SignupSerializer(AbstractUserSerializer):
         model = User
         fields = ('username', 'email', 'role',)
         read_only_fields = ('role',)
-    
-    def validate(self, attrs): 
-        if(attrs['username'] == 'me'): 
 
-            raise serializers.ValidationError( 
-                'Нельзя использовать "me" в качестве username!' 
-            ) 
-        return attrs 
+    def validate(self, attrs):
+        if(attrs['username'] == 'me'):
+
+            raise serializers.ValidationError(
+                'Нельзя использовать "me" в качестве username!'
+            )
+        return attrs
 
 
 class TokenSerializer(AbstractUserSerializer):

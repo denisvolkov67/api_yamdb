@@ -1,4 +1,6 @@
 import csv
+from os import error
+
 from reviews.models import User
 
 CSV_USERS = 'static/data/users.csv'
@@ -19,6 +21,6 @@ with open(CSV_USERS, newline='') as csvfile:
                 first_name=row[5],
                 last_name=row[6])
             contSuccess += 1
-        except:
-            print ("there was a problem with line", row)
-    print(f'{str(contSuccess)} inserted successfully! ')
+        except error:
+            print("there was a problem with line", row)
+    print(f'{str(contSuccess)} inserted successfully!')
