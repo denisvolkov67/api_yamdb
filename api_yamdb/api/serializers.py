@@ -58,7 +58,7 @@ class CommentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comments
         fields = "__all__"
-        read_only_fields = ("name", "author")
+        read_only_fields = ("review", "author")
 
         validators = [
             UniqueTogetherValidator(
