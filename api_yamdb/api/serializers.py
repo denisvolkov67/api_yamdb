@@ -38,11 +38,12 @@ class ReviewsSerializer(serializers.Serializer):
     class Meta:
         model = Reviews
         fields = "__all__"
-        read_only_fields = ("name",)
+        read_only_fields = ("author", "average")
 
         validators = [
             UniqueTogetherValidator(
-                queryset=Reviews.objects.all(), fields=("name", "text")
+                queryset=Reviews.objects.all(),
+                fields=("author", "title"),
             )
         ]
 
@@ -61,6 +62,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
         validators = [
             UniqueTogetherValidator(
-                queryset=Comments.objects.all(), fields=("name", "text")
+                queryset=Comments.objects.all(),
+                fields=("review", "text", "author"),
             )
         ]
