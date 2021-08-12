@@ -1,13 +1,8 @@
 from datetime import datetime
-<<<<<<< HEAD
-
-=======
 from django.contrib.auth.models import AbstractUser
 from django.db import models
->>>>>>> feature/auth-user
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from users.models import User
 
 
 Rating_CHOICES = (
@@ -18,7 +13,27 @@ Rating_CHOICES = (
     (5, "Excellent"),
 )
 
+class UserRole():
+    ADMIN = 'admin'
+    MODERATOR = 'moderator'
+    USER = 'user'
+    CHOICES = [
+        (ADMIN, 'admin'),
+        (MODERATOR, 'moderator'),
+        (USER, 'user'),
+    ]
 
+
+class User(AbstractUser):
+    bio = models.TextField(
+        'Биография',
+        blank=True,
+    )
+    role = models.CharField(
+        verbose_name='Роль пользователя',
+        max_length=16, 
+        choices=UserRole.CHOICES,
+    )
 
 
 class Categories(models.Model):
@@ -95,23 +110,3 @@ class Comments(models.Model):
     )
 
 
-class UserRole():
-    ADMIN = 'admin'
-    MODERATOR = 'moderator'
-    USER = 'user'
-    CHOICES = [
-        (ADMIN, 'admin'),
-        (MODERATOR, 'moderator'),
-        (USER, 'user'),
-    ]
-
-class User(AbstractUser):
-    bio = models.TextField(
-        'Биография',
-        blank=True,
-    )
-    role = models.CharField(
-        verbose_name='Роль пользователя',
-        max_length=16, 
-        choices=UserRole.CHOICES,
-    )
