@@ -1,19 +1,20 @@
-from reviews.models import Categories, Genres, Title
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
+from reviews.models import Categories, Comments, Genres, Reviews, Title
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categories
-        fields = '__all__'
-        read_only_fields = ('name',)
+        fields = "__all__"
+        read_only_fields = ("name",)
 
 
 class GenresSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genres
-        fields = '__all__'
-        read_only_fields = ('name',)
+        fields = "__all__"
+        read_only_fields = ("name",)
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -23,5 +24,43 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = '__all__'
-        read_only_fields = ('genres', 'category')
+        fields = "__all__"
+        read_only_fields = ("genres", "category")
+
+
+class ReviewsSerializer(serializers.Serializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field="username",
+        default=serializers.CurrentUserDefault(),
+    )
+
+    class Meta:
+        model = Reviews
+        fields = "__all__"
+        read_only_fields = ("name",)
+
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Reviews.objects.all(), fields=("name", "text")
+            )
+        ]
+
+
+class CommentsSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field="username",
+        default=serializers.CurrentUserDefault(),
+    )
+
+    class Meta:
+        model = Comments
+        fields = "__all__"
+        read_only_fields = ("name", "author")
+
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Comments.objects.all(), fields=("name", "text")
+            )
+        ]
