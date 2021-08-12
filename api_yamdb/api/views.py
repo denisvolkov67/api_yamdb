@@ -1,11 +1,11 @@
-from rest_framework.decorators import action
-from rest_framework.generics import CreateAPIView, get_object_or_404
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.decorators import action, permission_classes
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from reviews.models import Categories, Genres, Title, User
+from reviews.models import Categories, Genres, Title, User, UserRole
 from rest_framework import filters, mixins, viewsets, status
-from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-from django.contrib.auth.tokens import default_token_generator  
+from rest_framework_simplejwt.tokens import AccessToken
+from django.contrib.auth.tokens import default_token_generator
 
 from .permissions import IsAdmin, IsMeUser
 from .serializers import (CategoriesSerializer,
@@ -49,29 +49,43 @@ class TitleViewSet(viewsets.ReadOnlyModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated, IsAdmin) 
+    permission_classes = (IsAuthenticated, IsAdmin,)
     lookup_field = 'username'
 
-    # @action(methods=['get', 'patch'], detail=True, url_path='me')
-    # def me(self, request):
-    #     serializer = UserMeSerializer
-    #     if request.method == 'PATCH':
-    #         return Response(f'Получены данные: {request.PATCH}')
-    #     user = User.objects.filter(username=request.user.username)
-    #     serializer = self.get_serializer(user)
-    #     return Response(serializer.data) 
+    @action(methods=['get', 'patch', 'post'], permission_classes=(IsAuthenticated,), detail=False, url_path='me')
+    def me(self, request):
+        if request.method == 'GET':
+            user = get_object_or_404(User, username=request.user.username)
+            serializer = self.get_serializer(user)
+            return Response(serializer.data) 
+
+        if request.method == 'PATCH':
+            data = request.data
+            if request.user.role == UserRole.USER:
+                _mutable = data._mutable
+                data._mutable = True
+                data.update({'role': 'user'})
+                data._mutable = _mutable
+            serializer = self.get_serializer(request.user, data=data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.update(request.user, data)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK, headers=headers)
+
 
 
 class UserMeViewSet(RetrieveUpdateViewSet):
     queryset = User.objects.all()
     serializer_class = UserMeSerializer
-    permission_classes = (IsAuthenticated, IsMeUser)
+    permission_classes = (IsAuthenticated,)
 
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    def list(self, request, *args, **kwargs):
+        print(request.user.username)
+        user = get_object_or_404(User, username=request.user.username)
+        serializer = self.get_serializer(user)
+        return Response(serializer.data) 
 
-    def perform_update(self, serializer):
-        return super().perform_update(serializer)
+
 
 
 class SignupViewSet(CreateViewSet):

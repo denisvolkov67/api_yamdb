@@ -34,7 +34,10 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class AbstractUserSerializer(serializers.ModelSerializer):
-    username = serializers.RegexField('^[\w.@+-]', max_length=150)
+    username = serializers.RegexField('^[\w.@+-]', 
+        max_length=150,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
     email = serializers.EmailField(
         max_length=254,
         validators=[UniqueValidator(queryset=User.objects.all())]
