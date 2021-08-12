@@ -6,28 +6,41 @@ from reviews.models import Categories, Comments, Genres, Reviews, Title
 class CategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categories
-        fields = "__all__"
+        fields = ('name', 'slug')
         read_only_fields = ("name",)
 
 
 class GenresSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genres
-        fields = "__all__"
+        fields = ('name', 'slug')
         read_only_fields = ("name",)
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    genre = GenresSerializer(read_only=True, many=True)
-    category = CategoriesSerializer(read_only=True)
-    rating = serializers.IntegerField(read_only=True, required=False)
+    genre = GenresSerializer(many=True)
+    category = CategoriesSerializer()
+    rating = serializers.IntegerField(required=False)
 
     class Meta:
         model = Title
-        fields = "__all__"
-        read_only_fields = ("genres", "category")
+        fields = '__all__'
+        read_only_fields = ('genre', 'category', 'rating')
+        
+        
+class TitleWriteSerializer(serializers.ModelSerializer):
+    genre = serializers.SlugRelatedField(
+        queryset=Genres.objects.all(), slug_field='slug', many=True
+    )
+    category = serializers.SlugRelatedField(
+        queryset=Categories.objects.all(), slug_field='slug'
+    )
 
-
+    class Meta:
+        fields = '__all__'
+        model = Title
+        
+        
 class ReviewsSerializer(serializers.Serializer):
     author = serializers.SlugRelatedField(
         read_only=True,

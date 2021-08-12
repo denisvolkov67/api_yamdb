@@ -1,7 +1,9 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, permissions, viewsets
-from reviews.models import Categories, Comments, Genres, Reviews, Title
+from rest_framework import filters, permissions, viewsets, mixins
+from django_filters.rest_framework import DjangoFilterBackend
 
+from reviews.models import Categories, Comments, Genres, Reviews, Title
+from .filters import TitleFilter
 from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     CategoriesSerializer,
@@ -9,29 +11,43 @@ from .serializers import (
     GenresSerializer,
     ReviewsSerializer,
     TitleSerializer,
+    TitleWriteSerializer,
 )
 
 
-class CategoriesViewSet(viewsets.ReadOnlyModelViewSet):
+class BaseModelViewSet(mixins.ListModelMixin,
+                    mixins.CreateModelMixin,
+                    mixins.DestroyModelMixin,
+                    viewsets.GenericViewSet):
+    pass
+
+
+class CategoriesViewSet(BaseModelViewSet):
     queryset = Categories.objects.all()
     serializer_class = CategoriesSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ("name",)
+    search_fields = ('name', )
+    lookup_field = 'slug'
 
 
-class GenresViewSet(viewsets.ReadOnlyModelViewSet):
+class GenresViewSet(BaseModelViewSet):
     queryset = Genres.objects.all()
     serializer_class = GenresSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ("name",)
+    search_fields = ('name', )
+    lookup_field = 'slug'
 
 
-class TitleViewSet(viewsets.ReadOnlyModelViewSet):
+class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ("name",)
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TitleFilter
 
+    def get_serializer_class(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return TitleSerializer
+        return TitleWriteSerializer
 
 class ReviewsViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewsSerializer
