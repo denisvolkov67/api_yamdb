@@ -1,6 +1,9 @@
+from enum import unique
+
+from rest_framework.validators import UniqueValidator
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
-from reviews.models import Categories, Comments, Genres, Reviews, Title
+from reviews.models import Categories, Comments, Genres, Reviews, Title, User, UserRole
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
@@ -79,3 +82,52 @@ class CommentsSerializer(serializers.ModelSerializer):
                 fields=("review", "text", "author"),
             )
         ]
+
+
+class AbstractUserSerializer(serializers.ModelSerializer):
+    username = serializers.RegexField('^[\w.@+-]', 
+        max_length=150,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+    email = serializers.EmailField(
+        max_length=254,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+    role = serializers.ChoiceField(required=False, 
+        choices=UserRole.CHOICES, 
+        default=UserRole.USER)
+
+
+class UserSerializer(AbstractUserSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'bio', 'role',)
+
+
+class UserMeSerializer(AbstractUserSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'bio',)
+
+
+class SignupSerializer(AbstractUserSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'role',)
+        read_only_fields = ('role',)
+    
+    def validate(self, attrs): 
+        if(attrs['username'] == 'me'): 
+
+            raise serializers.ValidationError( 
+                'Нельзя использовать "me" в качестве username!' 
+            ) 
+        return attrs 
+
+
+class TokenSerializer(AbstractUserSerializer):
+    confirmation_code = serializers.CharField()
+
+    class Meta:
+        model = User
+        fields = ('username', 'confirmation_code',)
