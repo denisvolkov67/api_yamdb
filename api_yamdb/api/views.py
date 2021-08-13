@@ -10,7 +10,7 @@ from reviews.models import (Categories, Comments, Genres, Reviews, Title, User,
                             UserRole)
 
 from .filters import TitleFilter
-from .permissions import IsAdmin, IsOwnerOrReadOnly
+from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
 from .serializers import (CategoriesSerializer, CommentsSerializer,
                           GenresSerializer, ReviewsSerializer,
                           SignupSerializer, TitleSerializer,
@@ -40,6 +40,10 @@ class BaseModelViewSet(mixins.ListModelMixin,
 class CategoriesViewSet(BaseModelViewSet):
     queryset = Categories.objects.all()
     serializer_class = CategoriesSerializer
+    permission_classes = [
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAdminOrReadOnly
+    ]
     filter_backends = [filters.SearchFilter]
     search_fields = ('name', )
     lookup_field = 'slug'
@@ -48,6 +52,10 @@ class CategoriesViewSet(BaseModelViewSet):
 class GenresViewSet(BaseModelViewSet):
     queryset = Genres.objects.all()
     serializer_class = GenresSerializer
+    permission_classes = [
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAdminOrReadOnly
+    ]
     filter_backends = [filters.SearchFilter]
     search_fields = ('name', )
     lookup_field = 'slug'
@@ -56,6 +64,10 @@ class GenresViewSet(BaseModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    permission_classes = [
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAdminOrReadOnly
+    ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = TitleFilter
 
