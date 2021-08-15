@@ -81,7 +81,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
 class AbstractUserSerializer(serializers.ModelSerializer):
     username = serializers.RegexField(
-        '^[\w.@+-]',
+        r'^[\w.@+-]',
         max_length=150,
         validators=[UniqueValidator(queryset=User.objects.all())]
     )

@@ -124,7 +124,7 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, IsAdmin,)
     lookup_field = 'username'
 
-    @action(methods=['get', 'patch', 'post'], detail=False,
+    @action(methods=['get', 'patch'], detail=False,
             permission_classes=(IsAuthenticated,), url_path='me')
     def me(self, request):
         if request.method == 'GET':
@@ -190,13 +190,14 @@ class TokenViewSet(CreateViewSet):
     serializer_class = TokenSerializer
 
     def create(self, request):
-        print(request.data)
-        username = request.data.get('username')
-        confirmation_code = request.data.get('confirmation_code')
-        user = get_object_or_404(User, username=username)
-
-        if default_token_generator.check_token(user, confirmation_code):
-            token = AccessToken.for_user(user)
-            return Response(
-                {'token': str(token)}, status=status.HTTP_200_OK
-            )
+        if (request.data.get('username')
+           and request.data.get('confirmation_code')):
+            username = request.data.get('username')
+            confirmation_code = request.data.get('confirmation_code')
+            user = get_object_or_404(User, username=username)
+            if default_token_generator.check_token(user, confirmation_code):
+                token = AccessToken.for_user(user)
+                return Response(
+                    {'token': str(token)}, status=status.HTTP_200_OK
+                )
+        return Response(status=status.HTTP_400_BAD_REQUEST)
