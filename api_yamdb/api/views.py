@@ -19,18 +19,11 @@ from django.db.models import Avg
 from django.forms import ValidationError
 from .filters import TitleFilter
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
-from .serializers import (
-    CategoriesSerializer,
-    CommentsSerializer,
-    GenresSerializer,
-    ReviewsSerializer,
-    SignupSerializer,
-    TitleSerializer,
-    TitleWriteSerializer,
-    TokenSerializer,
-    UserMeSerializer,
-    UserSerializer,
-)
+from .serializers import (CategoriesSerializer, CommentsSerializer,
+                          GenresSerializer, ReviewsSerializer,
+                          SignupSerializer, TitleSerializer,
+                          TitleWriteSerializer, TokenSerializer,
+                          UserSerializer)
 from .utils import Util
 
 
@@ -134,18 +127,13 @@ class CommentViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (
-        IsAuthenticated,
-        IsAdmin,
-    )
-    lookup_field = "username"
+    permission_classes = (IsAuthenticated, IsAdmin,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('username', )
+    lookup_field = 'username'
 
-    @action(
-        methods=["get", "patch", "post"],
-        detail=False,
-        permission_classes=(IsAuthenticated,),
-        url_path="me",
-    )
+    @action(methods=['get', 'patch'], detail=False,
+            permission_classes=(IsAuthenticated,), url_path='me')
     def me(self, request):
         if request.method == "GET":
             user = get_object_or_404(User, username=request.user.username)
@@ -168,18 +156,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(
                 serializer.data, status=status.HTTP_200_OK, headers=headers
             )
-
-
-class UserMeViewSet(RetrieveUpdateViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserMeSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def list(self, request, *args, **kwargs):
-        print(request.user.username)
-        user = get_object_or_404(User, username=request.user.username)
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
 
 
 class SignupViewSet(CreateViewSet):
@@ -207,11 +183,14 @@ class TokenViewSet(CreateViewSet):
     serializer_class = TokenSerializer
 
     def create(self, request):
-        print(request.data)
-        username = request.data.get("username")
-        confirmation_code = request.data.get("confirmation_code")
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data.get('username')
+        confirmation_code = serializer.validated_data.get('confirmation_code')
         user = get_object_or_404(User, username=username)
-
         if default_token_generator.check_token(user, confirmation_code):
             token = AccessToken.for_user(user)
-            return Response({"token": str(token)}, status=status.HTTP_200_OK)
+            return Response(
+                {'token': str(token)}, status=status.HTTP_200_OK
+            )
+        return Response(status=status.HTTP_400_BAD_REQUEST)

@@ -89,7 +89,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
 class AbstractUserSerializer(serializers.ModelSerializer):
     username = serializers.RegexField(
-        "^[\w.@+-]",
+        r'^[\w.@+-]',
         max_length=150,
         validators=[UniqueValidator(queryset=User.objects.all())],
     )
@@ -115,18 +115,6 @@ class UserSerializer(AbstractUserSerializer):
         )
 
 
-class UserMeSerializer(AbstractUserSerializer):
-    class Meta:
-        model = User
-        fields = (
-            "username",
-            "email",
-            "first_name",
-            "last_name",
-            "bio",
-        )
-
-
 class SignupSerializer(AbstractUserSerializer):
     class Meta:
         model = User
@@ -146,7 +134,8 @@ class SignupSerializer(AbstractUserSerializer):
         return attrs
 
 
-class TokenSerializer(AbstractUserSerializer):
+class TokenSerializer(serializers.ModelSerializer):
+    username = serializers.CharField()
     confirmation_code = serializers.CharField()
 
     class Meta:
