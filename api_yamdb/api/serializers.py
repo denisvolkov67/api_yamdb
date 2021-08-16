@@ -4,7 +4,7 @@ from reviews.models import (
     Categories,
     Comments,
     Genres,
-    Reviews,
+    Review,
     Title,
     User,
     UserRole,
@@ -14,73 +14,76 @@ from reviews.models import (
 class CategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categories
-        fields = ("name", "slug")
+        fields = ('name', 'slug')
 
 
 class GenresSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genres
-        fields = ("name", "slug")
+        fields = ('name', 'slug')
 
 
 class TitleSerializer(serializers.ModelSerializer):
     genre = GenresSerializer(many=True)
     category = CategoriesSerializer()
-    rating = serializers.IntegerField(required=False)
+    rating = serializers.SerializerMethodField(required=False)
 
     class Meta:
         model = Title
-        fields = "__all__"
+        fields = '__all__'
+
+    def get_rating(self, obj):
+        count_rating = obj.reviews.count()
+        if count_rating:
+            sum_rating = sum(obj.reviews.values_list('score', flat=True))
+            return sum_rating / count_rating
+        return None
 
 
 class TitleWriteSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
-        queryset=Genres.objects.all(), slug_field="slug", many=True
+        queryset=Genres.objects.all(), slug_field='slug', many=True
     )
     category = serializers.SlugRelatedField(
-        queryset=Categories.objects.all(), slug_field="slug"
+        queryset=Categories.objects.all(), slug_field='slug'
     )
 
     class Meta:
-        fields = "__all__"
+        fields = '__all__'
         model = Title
 
 
 class ReviewsSerializer(serializers.ModelSerializer):
+    title = serializers.StringRelatedField(
+        read_only=True,
+    )
     author = serializers.SlugRelatedField(
         read_only=True,
-        slug_field="username",
+        slug_field='username',
         default=serializers.CurrentUserDefault(),
     )
 
     class Meta:
-        model = Reviews
-        fields = "__all__"
-        read_only_fields = ("author", "name")
-
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Reviews.objects.all(), fields=("author", "text")
-            )
-        ]
+        model = Review
+        fields = '__all__'
 
 
 class CommentsSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
-        slug_field="username",
+        slug_field='username',
         default=serializers.CurrentUserDefault(),
     )
 
     class Meta:
         model = Comments
-        fields = "__all__"
-        read_only_fields = ("review", "author")
+        fields = '__all__'
+        read_only_fields = ('review', 'author')
 
         validators = [
             UniqueTogetherValidator(
                 queryset=Comments.objects.all(),
-                fields=("text", "author"),
+                fields=('text', 'author'),
             )
         ]
 
@@ -104,12 +107,12 @@ class UserSerializer(AbstractUserSerializer):
     class Meta:
         model = User
         fields = (
-            "username",
-            "email",
-            "first_name",
-            "last_name",
-            "bio",
-            "role",
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
         )
 
 
@@ -117,14 +120,14 @@ class SignupSerializer(AbstractUserSerializer):
     class Meta:
         model = User
         fields = (
-            "username",
-            "email",
-            "role",
+            'username',
+            'email',
+            'role',
         )
-        read_only_fields = ("role",)
+        read_only_fields = ('role',)
 
     def validate(self, attrs):
-        if attrs["username"] == "me":
+        if attrs['username'] == 'me':
 
             raise serializers.ValidationError(
                 'Нельзя использовать "me" в качестве username!'
@@ -139,6 +142,6 @@ class TokenSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            "username",
-            "confirmation_code",
+            'username',
+            'confirmation_code',
         )

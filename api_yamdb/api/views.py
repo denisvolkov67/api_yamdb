@@ -3,21 +3,21 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import (
     Categories,
-    Comments,
     Genres,
-    Reviews,
+    Review,
     Title,
     User,
     UserRole,
 )
 
 from .filters import TitleFilter
-from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
+from .permissions import IsAdmin, IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import (CategoriesSerializer, CommentsSerializer,
                           GenresSerializer, ReviewsSerializer,
                           SignupSerializer, TitleSerializer,
@@ -86,49 +86,39 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewsViewSet(viewsets.ModelViewSet):
-    # queryset = Reviews.objects.all()
     serializer_class = ReviewsSerializer
     permission_classes = [
-        permissions.IsAuthenticated,
-        # IsOwnerOrReadOnly,
-        # IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAuthorOrReadOnly,
     ]
 
     def get_queryset(self):
-        name = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        new_queryset = Title.objects.filter(name=name)
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        new_queryset = title.reviews.all()
         return new_queryset
 
     def perform_create(self, serializer):
-        title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        # if title.reviews.filter(author=self.request.user).exists():
-        #     raise forms.ValidationError(
-        #         'Можно оставлять только одно ревью.'
-        #     )
+        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        if title.reviews.filter(author=self.request.user).exists():
+            raise ValidationError(
+                'Можно оставлять только одно ревью')
         serializer.save(author=self.request.user, title_id=title.id)
-
-    def get_title_rating(self):
-        title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        title_sum_rating = sum(Reviews.objects.filter(title=title))
-        title_count_rating = Reviews.objects.filter(title=title).count()
-        avg_rating = title_sum_rating / title_count_rating
-        return avg_rating
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentsSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
-        IsOwnerOrReadOnly,
+        IsAuthorOrReadOnly,
     ]
 
     def get_queryset(self):
-        review = get_object_or_404(Reviews, pk=self.kwargs.get("reviews_id"))
-        new_queryset = Comments.objects.filter(review=review)
+        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
+        new_queryset = review.comments.all()
         return new_queryset
 
     def perform_create(self, serializer):
-        review = get_object_or_404(Reviews, pk=self.kwargs.get("reviews_id"))
+        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
         serializer.save(author=self.request.user, review=review)
 
 

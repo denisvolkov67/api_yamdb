@@ -27,10 +27,16 @@ class User(AbstractUser):
         choices=UserRole.CHOICES,
     )
 
+    class Meta:
+        ordering = ['username']
+
 
 class Categories(models.Model):
     name = models.CharField(verbose_name="Имя категории", max_length=256)
     slug = models.SlugField(verbose_name="Slug категории", unique=True)
+
+    class Meta:
+        ordering = ['name']
 
     def __str__(self):
         return self.name
@@ -39,6 +45,9 @@ class Categories(models.Model):
 class Genres(models.Model):
     name = models.CharField(verbose_name="Имя жанра", max_length=256)
     slug = models.SlugField(verbose_name="Slug жанра", unique=True)
+
+    class Meta:
+        ordering = ['name']
 
     def __str__(self):
         return self.name
@@ -71,8 +80,11 @@ class Title(models.Model):
         related_name="titles",
     )
 
+    class Meta:
+        ordering = ['name']
 
-class Reviews(models.Model):
+
+class Review(models.Model):
     text = models.CharField(max_length=500)
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="reviews"
@@ -87,13 +99,21 @@ class Reviews(models.Model):
         "Дата добавления", auto_now_add=True, db_index=True
     )
 
+    class Meta:
+        ordering = ['-pub_date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'title'],
+                name='unique_reviews'),
+        ]
+
 
 class Comments(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="comments"
     )
     review = models.ForeignKey(
-        Reviews, on_delete=models.CASCADE, related_name="comments"
+        Review, on_delete=models.CASCADE, related_name="comments"
     )
     text = models.CharField(max_length=500)
     created = models.DateTimeField(
