@@ -26,18 +26,18 @@ class GenresSerializer(serializers.ModelSerializer):
 class TitleSerializer(serializers.ModelSerializer):
     genre = GenresSerializer(many=True)
     category = CategoriesSerializer()
-    rating = serializers.SerializerMethodField(required=False)
+    rating = serializers.IntegerField(required=False)
 
     class Meta:
         model = Title
         fields = '__all__'
 
-    def get_rating(self, obj):
-        count_rating = obj.reviews.count()
-        if count_rating:
-            sum_rating = sum(obj.reviews.values_list('score', flat=True))
-            return sum_rating / count_rating
-        return None
+    # def get_rating(self, obj):
+    #     count_rating = obj.reviews.count()
+    #     if count_rating:
+    #         sum_rating = sum(obj.reviews.values_list('score', flat=True))
+    #         return sum_rating / count_rating
+    #     return None
 
 
 class TitleWriteSerializer(serializers.ModelSerializer):
@@ -54,8 +54,9 @@ class TitleWriteSerializer(serializers.ModelSerializer):
 
 
 class ReviewsSerializer(serializers.ModelSerializer):
-    title = serializers.StringRelatedField(
+    title = serializers.SlugRelatedField(
         read_only=True,
+        slug_field='name',
     )
     author = serializers.SlugRelatedField(
         read_only=True,
