@@ -4,33 +4,25 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-Rating_CHOICES = (
-    (1, "Poor"),
-    (2, "Average"),
-    (3, "Good"),
-    (4, "Very Good"),
-    (5, "Excellent"),
-)
 
-
-class UserRole():
-    ADMIN = 'admin'
-    MODERATOR = 'moderator'
-    USER = 'user'
+class UserRole:
+    ADMIN = "admin"
+    MODERATOR = "moderator"
+    USER = "user"
     CHOICES = [
-        (ADMIN, 'admin'),
-        (MODERATOR, 'moderator'),
-        (USER, 'user'),
+        (ADMIN, "admin"),
+        (MODERATOR, "moderator"),
+        (USER, "user"),
     ]
 
 
 class User(AbstractUser):
     bio = models.TextField(
-        'Биография',
+        "Биография",
         blank=True,
     )
     role = models.CharField(
-        verbose_name='Роль пользователя',
+        verbose_name="Роль пользователя",
         max_length=16,
         choices=UserRole.CHOICES,
     )
@@ -67,11 +59,9 @@ class Title(models.Model):
             ),
         ],
     )
-    description = models.TextField(verbose_name='Описание')
+    description = models.TextField(verbose_name="Описание")
     genre = models.ManyToManyField(
-        Genres,
-        verbose_name='Жанр произведения',
-        related_name='titles'
+        Genres, verbose_name="Жанр произведения", related_name="titles"
     )
     category = models.ForeignKey(
         Categories,
@@ -87,12 +77,13 @@ class Reviews(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="reviews"
     )
-    average = models.PositiveIntegerField(default=1)
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, related_name="reviews"
     )
-    rating = models.IntegerField(choices=Rating_CHOICES, default=1)
-    created = models.DateTimeField(
+    score = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)]
+    )
+    pub_date = models.DateTimeField(
         "Дата добавления", auto_now_add=True, db_index=True
     )
 

@@ -1,19 +1,26 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from reviews.models import (Categories, Comments, Genres, Reviews, Title, User,
-                            UserRole)
+from reviews.models import (
+    Categories,
+    Comments,
+    Genres,
+    Reviews,
+    Title,
+    User,
+    UserRole,
+)
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categories
-        fields = ('name', 'slug')
+        fields = ("name", "slug")
 
 
 class GenresSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genres
-        fields = ('name', 'slug')
+        fields = ("name", "slug")
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -23,23 +30,23 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = '__all__'
+        fields = "__all__"
 
 
 class TitleWriteSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
-        queryset=Genres.objects.all(), slug_field='slug', many=True
+        queryset=Genres.objects.all(), slug_field="slug", many=True
     )
     category = serializers.SlugRelatedField(
-        queryset=Categories.objects.all(), slug_field='slug'
+        queryset=Categories.objects.all(), slug_field="slug"
     )
 
     class Meta:
-        fields = '__all__'
+        fields = "__all__"
         model = Title
 
 
-class ReviewsSerializer(serializers.Serializer):
+class ReviewsSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field="username",
@@ -49,12 +56,11 @@ class ReviewsSerializer(serializers.Serializer):
     class Meta:
         model = Reviews
         fields = "__all__"
-        read_only_fields = ("author", "average")
+        read_only_fields = ("author", "name")
 
         validators = [
             UniqueTogetherValidator(
-                queryset=Reviews.objects.all(),
-                fields=("author", "title"),
+                queryset=Reviews.objects.all(), fields=("author", "text")
             )
         ]
 
@@ -74,49 +80,63 @@ class CommentsSerializer(serializers.ModelSerializer):
         validators = [
             UniqueTogetherValidator(
                 queryset=Comments.objects.all(),
-                fields=("review", "text", "author"),
+                fields=("text", "author"),
             )
         ]
 
 
 class AbstractUserSerializer(serializers.ModelSerializer):
     username = serializers.RegexField(
-        '^[\w.@+-]',
+        "^[\w.@+-]",
         max_length=150,
-        validators=[UniqueValidator(queryset=User.objects.all())]
+        validators=[UniqueValidator(queryset=User.objects.all())],
     )
     email = serializers.EmailField(
         max_length=254,
-        validators=[UniqueValidator(queryset=User.objects.all())]
+        validators=[UniqueValidator(queryset=User.objects.all())],
     )
     role = serializers.ChoiceField(
-        required=False,
-        choices=UserRole.CHOICES,
-        default=UserRole.USER
+        required=False, choices=UserRole.CHOICES, default=UserRole.USER
     )
 
 
 class UserSerializer(AbstractUserSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name',
-                  'last_name', 'bio', 'role',)
+        fields = (
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "bio",
+            "role",
+        )
 
 
 class UserMeSerializer(AbstractUserSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'bio',)
+        fields = (
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "bio",
+        )
 
 
 class SignupSerializer(AbstractUserSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email', 'role',)
-        read_only_fields = ('role',)
+        fields = (
+            "username",
+            "email",
+            "role",
+        )
+        read_only_fields = ("role",)
 
     def validate(self, attrs):
-        if(attrs['username'] == 'me'):
+        if attrs["username"] == "me":
 
             raise serializers.ValidationError(
                 'Нельзя использовать "me" в качестве username!'
@@ -129,4 +149,7 @@ class TokenSerializer(AbstractUserSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'confirmation_code',)
+        fields = (
+            "username",
+            "confirmation_code",
+        )
