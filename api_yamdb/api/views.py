@@ -6,8 +6,15 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
-from reviews.models import (Categories, Comments, Genres, Reviews, Title, User,
-                            UserRole)
+from reviews.models import (
+    Categories,
+    Comments,
+    Genres,
+    Reviews,
+    Title,
+    User,
+    UserRole,
+)
 
 from .filters import TitleFilter
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
@@ -19,21 +26,22 @@ from .serializers import (CategoriesSerializer, CommentsSerializer,
 from .utils import Util
 
 
-class CreateViewSet(mixins.CreateModelMixin,
-                    viewsets.GenericViewSet):
+class CreateViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     pass
 
 
-class RetrieveUpdateViewSet(mixins.RetrieveModelMixin,
-                            mixins.UpdateModelMixin,
-                            viewsets.GenericViewSet):
+class RetrieveUpdateViewSet(
+    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
+):
     pass
 
 
-class BaseModelViewSet(mixins.ListModelMixin,
-                       mixins.CreateModelMixin,
-                       mixins.DestroyModelMixin,
-                       viewsets.GenericViewSet):
+class BaseModelViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
     pass
 
 
@@ -42,11 +50,11 @@ class CategoriesViewSet(BaseModelViewSet):
     serializer_class = CategoriesSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
-        IsAdminOrReadOnly
+        IsAdminOrReadOnly,
     ]
     filter_backends = [filters.SearchFilter]
-    search_fields = ('name', )
-    lookup_field = 'slug'
+    search_fields = ("name",)
+    lookup_field = "slug"
 
 
 class GenresViewSet(BaseModelViewSet):
@@ -54,11 +62,11 @@ class GenresViewSet(BaseModelViewSet):
     serializer_class = GenresSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
-        IsAdminOrReadOnly
+        IsAdminOrReadOnly,
     ]
     filter_backends = [filters.SearchFilter]
-    search_fields = ('name', )
-    lookup_field = 'slug'
+    search_fields = ("name",)
+    lookup_field = "slug"
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -66,7 +74,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     serializer_class = TitleSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
-        IsAdminOrReadOnly
+        IsAdminOrReadOnly,
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = TitleFilter
@@ -78,20 +86,26 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewsViewSet(viewsets.ModelViewSet):
+    # queryset = Reviews.objects.all()
     serializer_class = ReviewsSerializer
     permission_classes = [
-        permissions.IsAuthenticatedOrReadOnly,
-        IsOwnerOrReadOnly,
+        permissions.IsAuthenticated,
+        # IsOwnerOrReadOnly,
+        # IsAdminOrReadOnly,
     ]
 
     def get_queryset(self):
-        title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        new_queryset = Title.objects.filter(title=title)
+        name = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
+        new_queryset = Title.objects.filter(name=name)
         return new_queryset
 
     def perform_create(self, serializer):
         title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        serializer.save(author=self.request.user, review=title)
+        # if title.reviews.filter(author=self.request.user).exists():
+        #     raise forms.ValidationError(
+        #         'Можно оставлять только одно ревью.'
+        #     )
+        serializer.save(author=self.request.user, title_id=title.id)
 
     def get_title_rating(self):
         title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
@@ -129,27 +143,27 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['get', 'patch'], detail=False,
             permission_classes=(IsAuthenticated,), url_path='me')
     def me(self, request):
-        if request.method == 'GET':
+        if request.method == "GET":
             user = get_object_or_404(User, username=request.user.username)
             serializer = self.get_serializer(user)
             return Response(serializer.data)
 
-        if request.method == 'PATCH':
+        if request.method == "PATCH":
             data = request.data
             if request.user.role == UserRole.USER:
                 _mutable = data._mutable
                 data._mutable = True
-                data.update({'role': 'user'})
+                data.update({"role": "user"})
                 data._mutable = _mutable
-            serializer = self.get_serializer(request.user,
-                                             data=data,
-                                             partial=True)
+            serializer = self.get_serializer(
+                request.user, data=data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
             serializer.update(request.user, data)
             headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data,
-                            status=status.HTTP_200_OK,
-                            headers=headers)
+            return Response(
+                serializer.data, status=status.HTTP_200_OK, headers=headers
+            )
 
 
 class SignupViewSet(CreateViewSet):
@@ -158,20 +172,17 @@ class SignupViewSet(CreateViewSet):
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
-        username = request.data.get('username')
-        email = request.data.get('email')
+        username = request.data.get("username")
+        email = request.data.get("email")
         user = get_object_or_404(User, username=username)
         confirmation_code = default_token_generator.make_token(user)
         data = {
-            'email_body': confirmation_code,
-            'to_email': email,
-            'email_subject': 'confirmation_code'
+            "email_body": confirmation_code,
+            "to_email": email,
+            "email_subject": "confirmation_code",
         }
         Util.send_email(data)
-        content = {
-            'username': username,
-            'email': email
-        }
+        content = {"username": username, "email": email}
         return Response(content, status=status.HTTP_200_OK)
 
 
