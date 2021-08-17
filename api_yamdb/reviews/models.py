@@ -81,7 +81,7 @@ class Review(models.Model):
         Title, on_delete=models.CASCADE, related_name="reviews"
     )
     score = models.IntegerField(
-        validators=[MinValueValidator(0), MaxValueValidator(10)]
+        validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
     pub_date = models.DateTimeField(
         "Дата добавления", auto_now_add=True, db_index=True
@@ -107,3 +107,6 @@ class Comment(models.Model):
     pub_date = models.DateTimeField(
         "Дата добавления", auto_now_add=True, db_index=True
     )
+
+    class Meta:
+        ordering = ["-pub_date"]

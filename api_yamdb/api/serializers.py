@@ -76,7 +76,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = "__all__"
+        fields = ("id", "text", "author", "pub_date")
         read_only_fields = ("review", "author")
 
         validators = [
@@ -89,7 +89,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
 class AbstractUserSerializer(serializers.ModelSerializer):
     username = serializers.RegexField(
-        r'^[\w.@+-]',
+        r"^[\w.@+-]",
         max_length=150,
         validators=[UniqueValidator(queryset=User.objects.all())],
     )
