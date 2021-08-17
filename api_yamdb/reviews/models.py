@@ -27,10 +27,16 @@ class User(AbstractUser):
         choices=UserRole.CHOICES,
     )
 
+    class Meta:
+        ordering = ["username"]
+
 
 class Categories(models.Model):
     name = models.CharField(verbose_name="Имя категории", max_length=256)
     slug = models.SlugField(verbose_name="Slug категории", unique=True)
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
@@ -39,6 +45,9 @@ class Categories(models.Model):
 class Genres(models.Model):
     name = models.CharField(verbose_name="Имя жанра", max_length=256)
     slug = models.SlugField(verbose_name="Slug жанра", unique=True)
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self):
         return self.name

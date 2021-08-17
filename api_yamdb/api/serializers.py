@@ -57,14 +57,6 @@ class ReviewsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = "__all__"
-        # read_only_fields = ("author", "name")
-        # unique_together = ("title", "author")
-
-        # validators = [
-        #     UniqueTogetherValidator(
-        #         queryset=Review.objects.all(), fields=("author", "title")
-        #     )
-        # ]
 
 
 class CommentsSerializer(serializers.ModelSerializer):
@@ -129,7 +121,7 @@ class SignupSerializer(AbstractUserSerializer):
         if attrs["username"] == "me":
 
             raise serializers.ValidationError(
-                'Нельзя использовать "me" в качестве username!'
+                "Нельзя использовать 'me' в качестве username!"
             )
         return attrs
 

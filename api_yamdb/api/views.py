@@ -71,7 +71,8 @@ class GenresViewSet(BaseModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.annotate(rating=Avg("reviews__score"))
+    queryset = (Title.objects.annotate(rating=Avg("reviews__score"))
+                .order_by("name"))
     serializer_class = TitleSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
@@ -94,15 +95,15 @@ class ReviewsViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
-        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
         new_queryset = title.reviews.all()
         return new_queryset
 
     def perform_create(self, serializer):
-        title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
+        title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
         if title.reviews.filter(author=self.request.user).exists():
             raise ValidationError(
-                'Можно оставлять только одно ревью')
+                "Можно оставлять только одно ревью")
         serializer.save(author=self.request.user, title_id=title.id)
 
 
@@ -114,12 +115,12 @@ class CommentViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
-        review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
+        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
         new_queryset = Comment.objects.filter(review=review)
         return new_queryset
 
     def perform_create(self, serializer):
-        review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
+        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
         serializer.save(author=self.request.user, review=review)
 
 
@@ -128,11 +129,11 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticated, IsAdmin,)
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('username', )
-    lookup_field = 'username'
+    search_fields = ("username", )
+    lookup_field = "username"
 
-    @action(methods=['get', 'patch'], detail=False,
-            permission_classes=(IsAuthenticated,), url_path='me')
+    @action(methods=["get", "patch"], detail=False,
+            permission_classes=(IsAuthenticated,), url_path="me")
     def me(self, request):
         if request.method == "GET":
             user = get_object_or_404(User, username=request.user.username)
@@ -184,12 +185,12 @@ class TokenViewSet(CreateViewSet):
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data.get('username')
-        confirmation_code = serializer.validated_data.get('confirmation_code')
+        username = serializer.validated_data.get("username")
+        confirmation_code = serializer.validated_data.get("confirmation_code")
         user = get_object_or_404(User, username=username)
         if default_token_generator.check_token(user, confirmation_code):
             token = AccessToken.for_user(user)
             return Response(
-                {'token': str(token)}, status=status.HTTP_200_OK
+                {"token": str(token)}, status=status.HTTP_200_OK
             )
         return Response(status=status.HTTP_400_BAD_REQUEST)
