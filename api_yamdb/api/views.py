@@ -16,7 +16,8 @@ from reviews.models import (
     UserRole,
 )
 from django.db.models import Avg
-from django.forms import ValidationError
+# from django.forms import ValidationError
+from rest_framework.exceptions import ValidationError
 from .filters import TitleFilter
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
 from .serializers import (CategoriesSerializer, CommentsSerializer,
@@ -116,12 +117,14 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
         review = Review.objects.filter(title=title)
-        new_queryset = Comment.objects.filter(review=review)
+        new_queryset = Comment.objects.filter(review=review[0])
         return new_queryset
 
     def perform_create(self, serializer):
-        review = get_object_or_404(Review, pk=self.kwargs.get("reviews_id"))
-        serializer.save(author=self.request.user, review=review[0])
+        title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
+        review = Review.objects.filter(title=title)
+        # review = get_object_or_404(Review, pk=self.kwargs.get("reviews_id"))
+        serializer.save(author=self.request.user, review_id=review[0].id)
 
 
 class UserViewSet(viewsets.ModelViewSet):
