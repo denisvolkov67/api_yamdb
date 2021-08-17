@@ -75,7 +75,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     serializer_class = TitleSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
-        # IsAdminOrReadOnly,
+        IsAdminOrReadOnly,
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = TitleFilter
