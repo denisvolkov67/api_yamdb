@@ -65,7 +65,7 @@ class ReviewsSerializer(serializers.ModelSerializer):
             if Review.objects.filter(
                 title=title, author=request.user
             ).exists():
-                raise ValidationError
+                raise ValidationError("Можно оставлять только одно ревью")
         return data
 
     class Meta:
