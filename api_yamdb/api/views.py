@@ -4,7 +4,6 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
@@ -14,7 +13,6 @@ from reviews.models import (
     Review,
     Title,
     User,
-    UserRole,
 )
 from django.db.models import Avg
 
@@ -31,7 +29,7 @@ from .serializers import (
     TokenSerializer,
     UserSerializer,
 )
-from .utils import Util
+from .utils import send_email
 
 
 class CreateViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -155,22 +153,13 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(user)
             return Response(serializer.data)
 
-        if request.method == "PATCH":
-            data = request.data
-            if request.user.role == UserRole.USER:
-                _mutable = data._mutable
-                data._mutable = True
-                data.update({"role": "user"})
-                data._mutable = _mutable
-            serializer = self.get_serializer(
-                request.user, data=data, partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.update(request.user, data)
-            headers = self.get_success_headers(serializer.data)
-            return Response(
-                serializer.data, status=status.HTTP_200_OK, headers=headers
-            )
+        serializer = self.get_serializer(
+            request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.update(request.user, serializer.validated_data)
+        headers = self.get_success_headers(serializer.validated_data)
+        return Response(serializer.validated_data, headers=headers)
 
 
 class SignupViewSet(CreateViewSet):
@@ -178,19 +167,17 @@ class SignupViewSet(CreateViewSet):
     serializer_class = SignupSerializer
 
     def create(self, request, *args, **kwargs):
-        super().create(request, *args, **kwargs)
-        username = request.data.get("username")
-        email = request.data.get("email")
-        user = get_object_or_404(User, username=username)
+        response = super().create(request, *args, **kwargs)
+        user = get_object_or_404(User, username=response.data["username"])
         confirmation_code = default_token_generator.make_token(user)
         data = {
             "email_body": confirmation_code,
-            "to_email": email,
+            "to_email": user.email,
             "email_subject": "confirmation_code",
         }
-        Util.send_email(data)
-        content = {"username": username, "email": email}
-        return Response(content, status=status.HTTP_200_OK)
+        send_email(data)
+        content = {"username": user.username, "email": user.email}
+        return Response(content)
 
 
 class TokenViewSet(CreateViewSet):
@@ -205,5 +192,5 @@ class TokenViewSet(CreateViewSet):
         user = get_object_or_404(User, username=username)
         if default_token_generator.check_token(user, confirmation_code):
             token = AccessToken.for_user(user)
-            return Response({"token": str(token)}, status=status.HTTP_200_OK)
+            return Response({"token": str(token)})
         return Response(status=status.HTTP_400_BAD_REQUEST)

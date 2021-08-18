@@ -96,7 +96,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
 class AbstractUserSerializer(serializers.ModelSerializer):
     username = serializers.RegexField(
-        r"^[\w.@+-]",
+        r'^[\w.@+-]',
         max_length=150,
         validators=[UniqueValidator(queryset=User.objects.all())],
     )
@@ -120,6 +120,11 @@ class UserSerializer(AbstractUserSerializer):
             "bio",
             "role",
         )
+
+    def validate(self, attrs):
+        if self.context['request'].user.role == UserRole.USER:
+            attrs['role'] = UserRole.USER
+        return attrs
 
 
 class SignupSerializer(AbstractUserSerializer):
