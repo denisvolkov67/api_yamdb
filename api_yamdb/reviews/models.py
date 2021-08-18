@@ -37,7 +37,11 @@ class User(AbstractUser):
 
 
 class Categories(models.Model):
-    name = models.CharField(verbose_name="Имя категории", max_length=256)
+    name = models.CharField(
+        verbose_name="Имя категории",
+        max_length=256,
+        db_index=True
+    )
     slug = models.SlugField(verbose_name="Slug категории", unique=True)
 
     class Meta:
@@ -50,7 +54,11 @@ class Categories(models.Model):
 
 
 class Genres(models.Model):
-    name = models.CharField(verbose_name="Имя жанра", max_length=256)
+    name = models.CharField(
+        verbose_name="Имя жанра",
+        max_length=256,
+        db_index=True
+    )
     slug = models.SlugField(verbose_name="Slug жанра", unique=True)
 
     class Meta:
@@ -64,7 +72,7 @@ class Genres(models.Model):
 
 class Title(models.Model):
     name = models.TextField(verbose_name="Имя произведения")
-    year = models.IntegerField(
+    year = models.PositiveSmallIntegerField(
         verbose_name="Год создания произведения",
         validators=[
             MaxValueValidator(
