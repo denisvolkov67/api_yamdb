@@ -2,9 +2,9 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 from reviews.models import (
     Categories,
-    Comments,
+    Comment,
     Genres,
-    Reviews,
+    Review,
     Title,
     User,
     UserRole,
@@ -52,17 +52,11 @@ class ReviewsSerializer(serializers.ModelSerializer):
         slug_field="username",
         default=serializers.CurrentUserDefault(),
     )
+    title = serializers.SlugRelatedField(read_only=True, slug_field="name")
 
     class Meta:
-        model = Reviews
+        model = Review
         fields = "__all__"
-        read_only_fields = ("author", "name")
-
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Reviews.objects.all(), fields=("author", "text")
-            )
-        ]
 
 
 class CommentsSerializer(serializers.ModelSerializer):
@@ -73,13 +67,13 @@ class CommentsSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Comments
-        fields = "__all__"
+        model = Comment
+        fields = ("id", "text", "author", "pub_date")
         read_only_fields = ("review", "author")
 
         validators = [
             UniqueTogetherValidator(
-                queryset=Comments.objects.all(),
+                queryset=Comment.objects.all(),
                 fields=("text", "author"),
             )
         ]
@@ -87,11 +81,7 @@ class CommentsSerializer(serializers.ModelSerializer):
 
 class AbstractUserSerializer(serializers.ModelSerializer):
     username = serializers.RegexField(
-<<<<<<< HEAD
         r'^[\w.@+-]',
-=======
-        "^[\w.@+-]",
->>>>>>> a13937452dfdaa78e7def24f7665a3db913111fa
         max_length=150,
         validators=[UniqueValidator(queryset=User.objects.all())],
     )
@@ -116,6 +106,11 @@ class UserSerializer(AbstractUserSerializer):
             "role",
         )
 
+    def validate(self, attrs):
+        if self.context['request'].user.role == UserRole.USER:
+            attrs['role'] = UserRole.USER
+        return attrs
+
 
 class SignupSerializer(AbstractUserSerializer):
     class Meta:
@@ -131,7 +126,7 @@ class SignupSerializer(AbstractUserSerializer):
         if attrs["username"] == "me":
 
             raise serializers.ValidationError(
-                'Нельзя использовать "me" в качестве username!'
+                "Нельзя использовать 'me' в качестве username!"
             )
         return attrs
 

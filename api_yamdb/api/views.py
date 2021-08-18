@@ -8,38 +8,22 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import (
     Categories,
-    Comments,
+    Comment,
     Genres,
-    Reviews,
+    Review,
     Title,
     User,
-    UserRole,
 )
-from django import forms
-
+from django.db.models import Avg
+from rest_framework.exceptions import ValidationError
 from .filters import TitleFilter
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
-<<<<<<< HEAD
 from .serializers import (CategoriesSerializer, CommentsSerializer,
                           GenresSerializer, ReviewsSerializer,
                           SignupSerializer, TitleSerializer,
                           TitleWriteSerializer, TokenSerializer,
                           UserSerializer)
-=======
-from .serializers import (
-    CategoriesSerializer,
-    CommentsSerializer,
-    GenresSerializer,
-    ReviewsSerializer,
-    SignupSerializer,
-    TitleSerializer,
-    TitleWriteSerializer,
-    TokenSerializer,
-    UserMeSerializer,
-    UserSerializer,
-)
->>>>>>> a13937452dfdaa78e7def24f7665a3db913111fa
-from .utils import Util
+from .utils import send_email
 
 
 class CreateViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -86,7 +70,8 @@ class GenresViewSet(BaseModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
+    queryset = (Title.objects.annotate(rating=Avg("reviews__score"))
+                .order_by("name"))
     serializer_class = TitleSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
@@ -102,33 +87,23 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewsViewSet(viewsets.ModelViewSet):
-    # queryset = Reviews.objects.all()
     serializer_class = ReviewsSerializer
     permission_classes = [
-        permissions.IsAuthenticated,
-        # IsOwnerOrReadOnly,
-    #     # IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+        IsOwnerOrReadOnly,
     ]
 
     def get_queryset(self):
-        name = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        new_queryset = Title.objects.filter(name=name)
+        title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
+        new_queryset = title.reviews.all()
         return new_queryset
 
     def perform_create(self, serializer):
         title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        # if title.reviews.filter(author=self.request.user).exists():
-        #     raise forms.ValidationError(
-        #         'Можно оставлять только одно ревью.'
-        #     )
+        if title.reviews.filter(author=self.request.user).exists():
+            raise ValidationError(
+                "Можно оставлять только одно ревью")
         serializer.save(author=self.request.user, title_id=title.id)
-
-    def get_title_rating(self):
-        title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        title_sum_rating = sum(Reviews.objects.filter(title=title))
-        title_count_rating = Reviews.objects.filter(title=title).count()
-        avg_rating = title_sum_rating / title_count_rating
-        return avg_rating
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -139,12 +114,12 @@ class CommentViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
-        review = get_object_or_404(Reviews, pk=self.kwargs.get("reviews_id"))
-        new_queryset = Comments.objects.filter(review=review)
+        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
+        new_queryset = Comment.objects.filter(review=review)
         return new_queryset
 
     def perform_create(self, serializer):
-        review = get_object_or_404(Reviews, pk=self.kwargs.get("reviews_id"))
+        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
         serializer.save(author=self.request.user, review=review)
 
 
@@ -153,33 +128,24 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticated, IsAdmin,)
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('username', )
-    lookup_field = 'username'
+    search_fields = ("username", )
+    lookup_field = "username"
 
-    @action(methods=['get', 'patch'], detail=False,
-            permission_classes=(IsAuthenticated,), url_path='me')
+    @action(methods=["get", "patch"], detail=False,
+            permission_classes=(IsAuthenticated,), url_path="me")
     def me(self, request):
         if request.method == "GET":
             user = get_object_or_404(User, username=request.user.username)
             serializer = self.get_serializer(user)
             return Response(serializer.data)
 
-        if request.method == "PATCH":
-            data = request.data
-            if request.user.role == UserRole.USER:
-                _mutable = data._mutable
-                data._mutable = True
-                data.update({"role": "user"})
-                data._mutable = _mutable
-            serializer = self.get_serializer(
-                request.user, data=data, partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.update(request.user, data)
-            headers = self.get_success_headers(serializer.data)
-            return Response(
-                serializer.data, status=status.HTTP_200_OK, headers=headers
-            )
+        serializer = self.get_serializer(
+            request.user, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.update(request.user, serializer.validated_data)
+        headers = self.get_success_headers(serializer.validated_data)
+        return Response(serializer.validated_data, headers=headers)
 
 
 class SignupViewSet(CreateViewSet):
@@ -187,19 +153,17 @@ class SignupViewSet(CreateViewSet):
     serializer_class = SignupSerializer
 
     def create(self, request, *args, **kwargs):
-        super().create(request, *args, **kwargs)
-        username = request.data.get("username")
-        email = request.data.get("email")
-        user = get_object_or_404(User, username=username)
+        response = super().create(request, *args, **kwargs)
+        user = get_object_or_404(User, username=response.data["username"])
         confirmation_code = default_token_generator.make_token(user)
         data = {
             "email_body": confirmation_code,
-            "to_email": email,
+            "to_email": user.email,
             "email_subject": "confirmation_code",
         }
-        Util.send_email(data)
-        content = {"username": username, "email": email}
-        return Response(content, status=status.HTTP_200_OK)
+        send_email(data)
+        content = {"username": user.username, "email": user.email}
+        return Response(content)
 
 
 class TokenViewSet(CreateViewSet):
@@ -207,24 +171,12 @@ class TokenViewSet(CreateViewSet):
     serializer_class = TokenSerializer
 
     def create(self, request):
-<<<<<<< HEAD
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data.get('username')
-        confirmation_code = serializer.validated_data.get('confirmation_code')
-=======
-        print(request.data)
-        username = request.data.get("username")
-        confirmation_code = request.data.get("confirmation_code")
->>>>>>> a13937452dfdaa78e7def24f7665a3db913111fa
+        username = serializer.validated_data.get("username")
+        confirmation_code = serializer.validated_data.get("confirmation_code")
         user = get_object_or_404(User, username=username)
         if default_token_generator.check_token(user, confirmation_code):
             token = AccessToken.for_user(user)
-<<<<<<< HEAD
-            return Response(
-                {'token': str(token)}, status=status.HTTP_200_OK
-            )
+            return Response({"token": str(token)})
         return Response(status=status.HTTP_400_BAD_REQUEST)
-=======
-            return Response({"token": str(token)}, status=status.HTTP_200_OK)
->>>>>>> a13937452dfdaa78e7def24f7665a3db913111fa
