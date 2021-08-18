@@ -29,6 +29,8 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ["username"]
+        verbose_name = "User"
+        verbose_name_plural = "Users"
 
     def __str__(self):
         return self.username
@@ -40,6 +42,8 @@ class Categories(models.Model):
 
     class Meta:
         ordering = ["name"]
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
 
     def __str__(self):
         return self.name
@@ -51,6 +55,8 @@ class Genres(models.Model):
 
     class Meta:
         ordering = ["name"]
+        verbose_name = "Genre"
+        verbose_name_plural = "Genres"
 
     def __str__(self):
         return self.name
@@ -83,6 +89,14 @@ class Title(models.Model):
         related_name="titles",
     )
 
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Title"
+        verbose_name_plural = "Titles"
+
+    def __str__(self):
+        return self.name
+
 
 class Review(models.Model):
     text = models.TextField()
@@ -101,11 +115,16 @@ class Review(models.Model):
 
     class Meta:
         ordering = ["-pub_date"]
+        verbose_name = "Review"
+        verbose_name_plural = "Reviews"
         constraints = [
             models.UniqueConstraint(
                 fields=["author", "title"], name="unique_reviews"
             )
         ]
+
+    def __str__(self):
+        return f"{self.text} Оценка: {self.score}"
 
 
 class Comment(models.Model):
@@ -122,3 +141,8 @@ class Comment(models.Model):
 
     class Meta:
         ordering = ["-pub_date"]
+        verbose_name = "Comment"
+        verbose_name_plural = "Comments"
+
+    def __str__(self):
+        return self.text
