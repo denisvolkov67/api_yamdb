@@ -4,41 +4,43 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-Rating_CHOICES = (
-    (1, "Poor"),
-    (2, "Average"),
-    (3, "Good"),
-    (4, "Very Good"),
-    (5, "Excellent"),
-)
 
-
-class UserRole():
-    ADMIN = 'admin'
-    MODERATOR = 'moderator'
-    USER = 'user'
+class UserRole:
+    ADMIN = "admin"
+    MODERATOR = "moderator"
+    USER = "user"
     CHOICES = [
-        (ADMIN, 'admin'),
-        (MODERATOR, 'moderator'),
-        (USER, 'user'),
+        (ADMIN, "admin"),
+        (MODERATOR, "moderator"),
+        (USER, "user"),
     ]
 
 
 class User(AbstractUser):
     bio = models.TextField(
-        'Биография',
+        "Биография",
         blank=True,
     )
     role = models.CharField(
-        verbose_name='Роль пользователя',
+        verbose_name="Роль пользователя",
         max_length=16,
         choices=UserRole.CHOICES,
     )
+
+    class Meta:
+        ordering = ["username"]
+        verbose_name = "User"
+        verbose_name_plural = "Users"
 
 
 class Categories(models.Model):
     name = models.CharField(verbose_name="Имя категории", max_length=256)
     slug = models.SlugField(verbose_name="Slug категории", unique=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
 
     def __str__(self):
         return self.name
@@ -48,13 +50,18 @@ class Genres(models.Model):
     name = models.CharField(verbose_name="Имя жанра", max_length=256)
     slug = models.SlugField(verbose_name="Slug жанра", unique=True)
 
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Genre"
+        verbose_name_plural = "Genres"
+
     def __str__(self):
         return self.name
 
 
 class Title(models.Model):
     name = models.TextField(verbose_name="Имя произведения")
-    year = models.IntegerField(
+    year = models.PositiveSmallIntegerField(
         verbose_name="Год создания произведения",
         validators=[
             MaxValueValidator(
@@ -67,11 +74,9 @@ class Title(models.Model):
             ),
         ],
     )
-    description = models.TextField(verbose_name='Описание')
+    description = models.TextField(verbose_name="Описание")
     genre = models.ManyToManyField(
-        Genres,
-        verbose_name='Жанр произведения',
-        related_name='titles'
+        Genres, verbose_name="Жанр произведения", related_name="titles"
     )
     category = models.ForeignKey(
         Categories,
@@ -81,9 +86,17 @@ class Title(models.Model):
         related_name="titles",
     )
 
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Title"
+        verbose_name_plural = "Titles"
+
+    def __str__(self):
+        return self.name
+
 
 class Review(models.Model):
-    text = models.CharField(max_length=500)
+    text = models.TextField()
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="reviews"
     )
@@ -98,15 +111,17 @@ class Review(models.Model):
     )
 
     class Meta:
-        ordering = ['-pub_date']
+        ordering = ["-pub_date"]
+        verbose_name = "Review"
+        verbose_name_plural = "Reviews"
         constraints = [
             models.UniqueConstraint(
-                fields=['author', 'title'],
-                name='unique_reviews'),
+                fields=["author", "title"], name="unique_reviews"
+            )
         ]
 
 
-class Comments(models.Model):
+class Comment(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="comments"
     )
@@ -114,6 +129,11 @@ class Comments(models.Model):
         Review, on_delete=models.CASCADE, related_name="comments"
     )
     text = models.CharField(max_length=500)
-    created = models.DateTimeField(
+    pub_date = models.DateTimeField(
         "Дата добавления", auto_now_add=True, db_index=True
     )
+
+    class Meta:
+        ordering = ["-pub_date"]
+        verbose_name = "Comment"
+        verbose_name_plural = "Comments"

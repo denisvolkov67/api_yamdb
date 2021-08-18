@@ -92,10 +92,7 @@ class ReviewsViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        if title.reviews.filter(author=self.request.user).exists():
-            raise ValidationError(
-                "Можно оставлять только одно ревью")
-        serializer.save(author=self.request.user, title_id=title.id)
+        serializer.save(author=self.request.user, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

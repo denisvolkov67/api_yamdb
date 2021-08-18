@@ -1,4 +1,6 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 from reviews.models import (Categories, Comment, Genres, Review, Title, User,
                             UserRole)
@@ -46,6 +48,18 @@ class ReviewsSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault(),
     )
     title = serializers.SlugRelatedField(read_only=True, slug_field="name")
+
+    def validate(self, data):
+        request = self.context['request']
+        title_id = self.context['view'].kwargs.get('title_id')
+        title = get_object_or_404(Title, pk=title_id)
+        if request.method == 'POST':
+            if Review.objects.filter(
+                    title=title,
+                    author=request.user
+            ).exists():
+                raise ValidationError("Можно оставлять только одно ревью")
+        return data
 
     class Meta:
         model = Review
