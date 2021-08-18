@@ -103,6 +103,11 @@ class Review(models.Model):
                 fields=["author", "title"], name="unique_reviews"
             )
         ]
+        verbose_name = "review"
+        verbose_name_plural = "reviews"
+
+    def __str__(self):
+        return f"{self.text} Оценка: {self.score}"
 
 
 class Comment(models.Model):
@@ -119,3 +124,8 @@ class Comment(models.Model):
 
     class Meta:
         ordering = ["-pub_date"]
+        verbose_name = "comment"
+        verbose_name_plural = "comments"
+
+    def __str__(self):
+        return self.text
