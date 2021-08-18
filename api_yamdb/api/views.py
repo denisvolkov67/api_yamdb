@@ -8,9 +8,17 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
-from reviews.models import (Categories, Comment, Genres, Review, Title, User,
-                            UserRole)
-
+from reviews.models import (
+    Categories,
+    Comment,
+    Genres,
+    Review,
+    Title,
+    User,
+    UserRole,
+)
+from django.db.models import Avg
+from rest_framework.exceptions import ValidationError
 from .filters import TitleFilter
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
 from .serializers import (CategoriesSerializer, CommentsSerializer,

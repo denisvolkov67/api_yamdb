@@ -1,7 +1,14 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from reviews.models import (Categories, Comment, Genres, Review, Title, User,
-                            UserRole)
+from reviews.models import (
+    Categories,
+    Comment,
+    Genres,
+    Review,
+    Title,
+    User,
+    UserRole,
+)
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
