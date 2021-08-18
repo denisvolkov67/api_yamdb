@@ -1,6 +1,9 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from rest_framework.generics import get_object_or_404
+
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from reviews.models import (Categories, Comments, Genres, Reviews, Title, User,
+from reviews.models import (Categories, Comments, Genres, Review, Title, User,
                             UserRole)
 
 
@@ -19,7 +22,7 @@ class GenresSerializer(serializers.ModelSerializer):
 class TitleSerializer(serializers.ModelSerializer):
     genre = GenresSerializer(many=True)
     category = CategoriesSerializer()
-    rating = serializers.IntegerField(required=False)
+    rating = serializers.IntegerField(read_only=True, required=False)
 
     class Meta:
         model = Title
@@ -39,24 +42,32 @@ class TitleWriteSerializer(serializers.ModelSerializer):
         model = Title
 
 
-class ReviewsSerializer(serializers.Serializer):
+class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field="username",
         default=serializers.CurrentUserDefault(),
     )
+    title = serializers.SlugRelatedField(
+        slug_field='name',
+        read_only=True,
+    )
+
+    def validate(self, data):
+        request = self.context['request']
+        title_id = self.context['view'].kwargs.get('title_id')
+        title = get_object_or_404(Title, pk=title_id)
+        if request.method == 'POST':
+            if Review.objects.filter(
+                    title=title,
+                    author=request.user
+            ).exists():
+                raise ValidationError('Only one review is allowed')
+        return data
 
     class Meta:
-        model = Reviews
+        model = Review
         fields = "__all__"
-        read_only_fields = ("author", "average")
-
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Reviews.objects.all(),
-                fields=("author", "title"),
-            )
-        ]
 
 
 class CommentsSerializer(serializers.ModelSerializer):
@@ -65,18 +76,21 @@ class CommentsSerializer(serializers.ModelSerializer):
         slug_field="username",
         default=serializers.CurrentUserDefault(),
     )
+    review = serializers.SlugRelatedField(
+        slug_field='text',
+        read_only=True
+    )
 
     class Meta:
         model = Comments
         fields = "__all__"
-        read_only_fields = ("review", "author")
 
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Comments.objects.all(),
-                fields=("review", "text", "author"),
-            )
-        ]
+        # validators = [
+        #     UniqueTogetherValidator(
+        #         queryset=Comments.objects.all(),
+        #         fields=("review", "text", "author"),
+        #     )
+        # ]
 
 
 class AbstractUserSerializer(serializers.ModelSerializer):

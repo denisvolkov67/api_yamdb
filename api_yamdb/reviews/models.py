@@ -82,19 +82,28 @@ class Title(models.Model):
     )
 
 
-class Reviews(models.Model):
+class Review(models.Model):
     text = models.CharField(max_length=500)
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="reviews"
     )
-    average = models.PositiveIntegerField(default=1)
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, related_name="reviews"
     )
-    rating = models.IntegerField(choices=Rating_CHOICES, default=1)
-    created = models.DateTimeField(
+    score = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)]
+    )
+    pub_date = models.DateTimeField(
         "Дата добавления", auto_now_add=True, db_index=True
     )
+
+    class Meta:
+        ordering = ['-pub_date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'title'],
+                name='unique_reviews'),
+        ]
 
 
 class Comments(models.Model):
@@ -102,7 +111,7 @@ class Comments(models.Model):
         User, on_delete=models.CASCADE, related_name="comments"
     )
     review = models.ForeignKey(
-        Reviews, on_delete=models.CASCADE, related_name="comments"
+        Review, on_delete=models.CASCADE, related_name="comments"
     )
     text = models.CharField(max_length=500)
     created = models.DateTimeField(
