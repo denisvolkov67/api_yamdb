@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import (
     Categories,
-    Comment,
     Genres,
     Review,
     Title,
@@ -16,14 +15,20 @@ from reviews.models import (
     UserRole,
 )
 from django.db.models import Avg
-from rest_framework.exceptions import ValidationError
+
 from .filters import TitleFilter
 from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
-from .serializers import (CategoriesSerializer, CommentsSerializer,
-                          GenresSerializer, ReviewsSerializer,
-                          SignupSerializer, TitleSerializer,
-                          TitleWriteSerializer, TokenSerializer,
-                          UserSerializer)
+from .serializers import (
+    CategoriesSerializer,
+    CommentsSerializer,
+    GenresSerializer,
+    ReviewsSerializer,
+    SignupSerializer,
+    TitleSerializer,
+    TitleWriteSerializer,
+    TokenSerializer,
+    UserSerializer,
+)
 from .utils import Util
 
 
@@ -71,8 +76,9 @@ class GenresViewSet(BaseModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = (Title.objects.annotate(rating=Avg("reviews__score"))
-                .order_by("name"))
+    queryset = Title.objects.annotate(rating=Avg("reviews__score")).order_by(
+        "name"
+    )
     serializer_class = TitleSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
@@ -96,14 +102,12 @@ class ReviewsViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        new_queryset = title.reviews.all()
-        return new_queryset
+        return title.reviews.all()
 
     def perform_create(self, serializer):
         title = get_object_or_404(Title, pk=self.kwargs.get("title_id"))
-        if title.reviews.filter(author=self.request.user).exists():
-            raise ValidationError(
-                "Можно оставлять только одно ревью")
+        # if title.reviews.filter(author=self.request.user).exists():
+        #     raise ValidationError("Можно оставлять только одно ревью")
         serializer.save(author=self.request.user, title_id=title.id)
 
 
@@ -115,25 +119,39 @@ class CommentViewSet(viewsets.ModelViewSet):
     ]
 
     def get_queryset(self):
-        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
-        new_queryset = Comment.objects.filter(review=review)
-        return new_queryset
+        review = get_object_or_404(
+            Review,
+            title__id=self.kwargs.get("title_id"),
+            id=self.kwargs.get("review_id"),
+        )
+        return review.comments.all()
 
     def perform_create(self, serializer):
-        review = get_object_or_404(Review, pk=self.kwargs.get("review_id"))
+        review = get_object_or_404(
+            Review,
+            title__id=self.kwargs.get("title_id"),
+            id=self.kwargs.get("review_id"),
+        )
         serializer.save(author=self.request.user, review=review)
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated, IsAdmin,)
+    permission_classes = (
+        IsAuthenticated,
+        IsAdmin,
+    )
     filter_backends = (filters.SearchFilter,)
-    search_fields = ("username", )
+    search_fields = ("username",)
     lookup_field = "username"
 
-    @action(methods=["get", "patch"], detail=False,
-            permission_classes=(IsAuthenticated,), url_path="me")
+    @action(
+        methods=["get", "patch"],
+        detail=False,
+        permission_classes=(IsAuthenticated,),
+        url_path="me",
+    )
     def me(self, request):
         if request.method == "GET":
             user = get_object_or_404(User, username=request.user.username)
@@ -190,7 +208,5 @@ class TokenViewSet(CreateViewSet):
         user = get_object_or_404(User, username=username)
         if default_token_generator.check_token(user, confirmation_code):
             token = AccessToken.for_user(user)
-            return Response(
-                {"token": str(token)}, status=status.HTTP_200_OK
-            )
+            return Response({"token": str(token)}, status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
