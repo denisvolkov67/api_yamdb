@@ -35,6 +35,14 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+    @property
+    def is_admin(self):
+        return self.role == UserRole.ADMIN
+
+    @property
+    def is_moderator(self):
+        return self.role == UserRole.MODERATOR
+
 
 class Categories(models.Model):
     name = models.CharField(

@@ -17,7 +17,13 @@ from reviews.models import (
 from django.db.models import Avg
 
 from .filters import TitleFilter
-from .permissions import IsAdmin, IsAdminOrReadOnly, IsOwnerOrReadOnly
+from .permissions import (
+    IsAdmin,
+    IsAdminOrReadOnly,
+    IsModeratorOrAdmin,
+    IsOwner,
+    IsReadOnly,
+)
 from .serializers import (
     CategoriesSerializer,
     CommentsSerializer,
@@ -94,7 +100,7 @@ class ReviewsViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewsSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
-        IsOwnerOrReadOnly,
+        IsOwner | IsModeratorOrAdmin | IsReadOnly,
     ]
 
     def get_queryset(self):
@@ -110,7 +116,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentsSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
-        IsOwnerOrReadOnly,
+        IsOwner | IsModeratorOrAdmin | IsReadOnly,
     ]
 
     def get_queryset(self):
