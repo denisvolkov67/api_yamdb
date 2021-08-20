@@ -23,6 +23,7 @@ class IsModeratorOrAdmin(permissions.BasePermission):
                 or request.user.is_admin
                 or request.user.is_superuser
             )
+        return False
 
 
 class IsAdmin(permissions.BasePermission):
